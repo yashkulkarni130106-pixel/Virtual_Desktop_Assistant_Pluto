@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pluto - Virtual Assistant</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="button-container-top-right">
+        <button class="icon" id="chat-history-toggle">☰</button>
+        <button class="icon" id="settings-button">⚙️</button>
+    </div>
+    
+    <div id="chat-history">
+        <div id="chat-history-header">
+            <h2>Chat History</h2>
+            <button class="icon" id="delete-history-btn" aria-label="Delete History">🗑️</button>
+        </div>
+        <div id="history-content">
+            <p>No conversations yet.</p>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="display-screen" id="display-screen">
+            <div class="messages-container" id="messages-container">
+                
+            </div>
+        </div>
+
+        <div class="bottom-overlay"></div>
+
+        <div class="chat-input">
+            <input type="text" placeholder="Type here..." id="chat-input">
+            <div class="icons">
+                <button class="icon" id="microphone_btn" aria-label="Voice Input">🎙️</button>
+                <button class="icon" id="send-query-button">⬆</button>
+                
+            </div>
+        </div>
+    </div>
+
+    <!-- Small Settings Window (Initially Hidden) -->
+    <div id="settings-popup" class="popup-window">
+        <h3>Settings</h3>
+        <input type="text" id="web_name" placeholder="Website Name">
+        <input type="text" id="web_url" placeholder="Website URL">
+        
+        <div class="popup-buttons">
+            <button id="add-website-btn">Add URL</button>
+            <button id="stored-data-btn">📋 Stored Data</button>
+            <button id="close-settings-btn">Back</button>
+        </div>
+    </div>
+
+    <!-- Small Stored Data Window (Initially Hidden) -->
+    <div id="stored-data-popup" class="popup-window">
+        <h3>Stored Websites</h3>
+        <ul id="data-list"></ul>
+        <button id="close-stored-data">×</button>
+    </div>
+
+    <script type="text/javascript" src="/eel.js"></script>
+    <script>
+    // Only the save-to-db related functions are modified
+    document.getElementById("add-website-btn").addEventListener("click", function() {
+    const web_name = document.getElementById("web_name").value.trim();
+    const web_url = document.getElementById("web_url").value.trim();
+    
+    if (!web_name || !web_url) {
+        alert("Please enter both Website Name and URL.");
+        return;
+    }
+
+    // Basic URL validation
+    if (!web_url.match(/^https?:\/\//)) {
+        alert("URL must start with http:// or https://");
+        return;
+    }
+
+    console.log("Attempting to save:", {web_name, web_url});  // Debug log
+    
+    eel.save_to_db2(web_name, web_url)(function(response) {
+        console.log("Received response:", response);  // Debug log
+        
+        if (response && response.success) {
+            alert(response.message || "Website saved successfully!");
+            document.getElementById("web_name").value = "";
+            document.getElementById("web_url").value = "";
+            
+            // Refresh the stored data list
+            document.getElementById("stored-data-btn").click();
+        } else {
+            alert("Error: " + (response?.error || "Unknown error occurred"));
+        }
+    }).catch(function(error) {
+        console.error("Error in save_to_db2:", error);
+        alert("Failed to communicate with backend. Check console for details.");
+    });
+});
+
+
+// document.getElementById('stored-data-btn').addEventListener('click', function() {
+//     eel.get_web_all_info()(function(data) {
+//         const dataList = document.getElementById('data-list');
+//         dataList.innerHTML = '';
+
+//         if (!data.success) {
+//             dataList.innerHTML = `<li>Error: ${data.error || 'Unknown error'}</li>`;
+//             document.getElementById('stored-data-popup').style.display = 'block';
+//             return;
+//         }
+
+//         if (data.urls.length === 0 && data.applications.length === 0) {
+//             dataList.innerHTML = '<li>No stored websites found.</li>';
+//         } else {
+//             // Display websites
+//             data.urls.forEach(item => {
+//                 const listItem = document.createElement('li');
+//                 listItem.innerHTML = `🌐 <strong>${item[0]}</strong> - <a href="${item[1]}" target="_blank">${item[1]}</a>`;
+//                 dataList.appendChild(listItem);
+//             });
+
+//             // Display applications (if any)
+//             data.applications.forEach(item => {
+//                 const listItem = document.createElement('li');
+//                 listItem.innerHTML = `🖥 <strong>${item[0]}</strong> - ${item[1]}`;
+//                 dataList.appendChild(listItem);
+//             });
+//         }
+
+//         document.getElementById('stored-data-popup').style.display = 'block';
+//     }).catch(error => {
+//         console.error("Error fetching web info:", error);
+//         alert("Failed to fetch stored data. Check console for details.");
+//     });
+// });
+
+
+
+
+
+document.getElementById('stored-data-btn').addEventListener('click', function() {
+    eel.get_web_all_info()(function(data) {
+        const dataList = document.getElementById('data-list');
+        dataList.innerHTML = '';
+
+        if (!data.success) {
+            dataList.innerHTML = `<li>Error: ${data.error || 'Unknown error'}</li>`;
+            document.getElementById('stored-data-popup').style.display = 'block';
+            return;
+        }
+
+        if (data.url.length === 0 && data.applications.length === 0) {
+            dataList.innerHTML = '<li>No stored websites found.</li>';
+        } else {
+            // Display websites
+            data.url.forEach(item => {  // FIXED: Use `data.url`
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `🌐 <strong>${item[0]}</strong> - <a href="${item[1]}" target="_blank">${item[1]}</a>`;
+                dataList.appendChild(listItem);
+            });
+
+            // Display applications (if any)
+            data.applications.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.innerHTML = `🖥 <strong>${item[0]}</strong> - ${item[1]}`;
+                dataList.appendChild(listItem);
+            });
+        }
+
+        document.getElementById('stored-data-popup').style.display = 'block';
+    }).catch(error => {
+        console.error("Error fetching web info:", error);
+        alert("Failed to fetch stored data. Check console for details.");
+    });
+});
+
+
+
+document.getElementById("delete-history-btn").addEventListener("click", function () {
+        if (confirm("Are you sure you want to delete the chat history?")) {
+            eel.clear_chat_history()(() => {
+                document.getElementById("history-content").innerHTML = ""; // Clear frontend history
+            });
+        }
+    });
+
+
+    document.getElementById("close-stored-data").addEventListener("click", function () {
+        document.getElementById("stored-data-popup").style.display = "none";
+    });
+
+
+
+    </script>
+    <script src="main.js"></script>
+</body>
+</html>
